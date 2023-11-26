@@ -1,0 +1,9 @@
+--data-root-dir ../data/
+--model-dir ../data/
+--model-names ../snapshots/ckpt/final.pth
+--evaluation-dirs outputs
+--data-names 9x9_test.nc
+--data-types tas
+--device cpu
+--n-filters 18
+--out-channels 1
