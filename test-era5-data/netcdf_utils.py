@@ -51,8 +51,9 @@ class DataSet:
         print("lon interval", find_interval(self.lon, given_lon, width_idx))
         lon_min_idx, lon_max_idx = find_interval(self.lon, given_lon, width_idx)
         lat_min_idx, lat_max_idx = find_interval(self.lat, given_lat, height_idx)
+        area = Area(self.lon[lon_min_idx], self.lon[lon_max_idx], self.lat[lat_min_idx], self.lat[lat_max_idx])
 
-        return slice(lon_min_idx, lon_max_idx), slice(lat_min_idx, lat_max_idx)
+        return slice(lon_min_idx, lon_max_idx), slice(lat_min_idx, lat_max_idx), area
 
     def crop_area(self, given_area):
         # Crop longitude
@@ -84,12 +85,10 @@ class DataSet:
 
 class Area:
     def __init__(self, min_lon, max_lon, min_lat, max_lat):
-        print(min_lon, max_lon, min_lat, max_lat)
         self.min_lon = np.min([min_lon, max_lon, 180]) + 180
         self.max_lon = np.max([min_lon, max_lon, -180]) + 180
         self.min_lat = np.min([min_lat, max_lat, 90])
         self.max_lat = np.max([min_lat, max_lat, -90])
-        print(self.min_lon, self.max_lon, self.min_lat, self.max_lat)
 
     def __str__(self):
         #  lat repr
@@ -174,7 +173,7 @@ class DatasetPlotter(Plot):
         self.lon_slice, self.lat_slice = slice(None), slice(None)
 
     def plot_grid(self, given_lon, given_lat, width_idx, height_idx):
-        self.lon_slice, self.lat_slice = self.dataset.crop_grid(given_lon, given_lat, width_idx, height_idx)
+        self.lon_slice, self.lat_slice, self.area = self.dataset.crop_grid(given_lon, given_lat, width_idx, height_idx)
         self.plot()
         self.lon_slice, self.lat_slice = slice(None), slice(None)
 
