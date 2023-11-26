@@ -39,7 +39,6 @@ class DataSet:
             return idx
 
     def crop_grid(self, given_lon, given_lat, width_idx, height_idx):
-        print("given lon", given_lon)
         given_lon += 180
         def find_interval(array, value, width):
             if width % 2 == 0:
@@ -51,7 +50,7 @@ class DataSet:
         print("lon interval", find_interval(self.lon, given_lon, width_idx))
         lon_min_idx, lon_max_idx = find_interval(self.lon, given_lon, width_idx)
         lat_min_idx, lat_max_idx = find_interval(self.lat, given_lat, height_idx)
-        area = Area(self.lon[lon_min_idx], self.lon[lon_max_idx], self.lat[lat_min_idx], self.lat[lat_max_idx])
+        area = Area(self.lon[lon_min_idx] - 180, self.lon[lon_max_idx] - 180, self.lat[lat_min_idx], self.lat[lat_max_idx])
 
         return slice(lon_min_idx, lon_max_idx), slice(lat_min_idx, lat_max_idx), area
 
@@ -93,7 +92,7 @@ class Area:
     def __str__(self):
         #  lat repr
         def lat_repr(_lat):
-            _lat = round(_lat, 2)
+            _lat = np.round(_lat, 2)
             if _lat > 0:
                 return f"N: {_lat}°"
             else:
@@ -101,11 +100,10 @@ class Area:
 
         # lon repr
         def lon_repr(_lon):
-            _lon = round(_lon, 2)
             if _lon > 180:
-                return f"E: {_lon - 180}°"
+                return f"W: {round(_lon - 180, 2)}°"
             else:
-                return f"W: {180 - _lon}°"
+                return f"E: {round(180 - _lon, 2)}°"
 
         return f"{lat_repr(self.min_lat)} to {lat_repr(self.max_lat)}, {lon_repr(self.max_lon)} to {lon_repr(self.min_lon)}"
 
@@ -132,18 +130,12 @@ class Plot:
             title += f"\n{self.dataset.human_readable_time(time_index)}"
 
             # plot
-            fig, ax = plt.subplots(subplot_kw={'projection': ccrs.PlateCarree()})
-
+            fig, ax = plt.subplots(subplot_kw={'projection': ccrs.PlateCarree(central_longitude=180)})
             # Plot the temperature data with a quadratic colormap
-            _lon = self.dataset.lon[self.lon_slice] + 180
+            _lon = self.dataset.lon[self.lon_slice]
             _lat = self.dataset.lat[self.lat_slice]
-            print("_lon shape:", _lon.shape)  # Add this line
-            print("_lat shape:", _lat.shape)  # Add this line
-            print(self.dataset.dataset.variables[var].shape)  # Add this line
             _data = self.dataset.dataset.variables[var][time_index, self.lat_slice, self.lon_slice]
-            print("_data shape:", _data.shape)  # Add this line
-
-            pcm = ax.pcolormesh(_lon, _lat, _data, cmap='viridis', shading='auto')
+            pcm = ax.pcolormesh(_lon, _lat, _data, cmap='viridis', shading='auto', transform=ccrs.PlateCarree())
 
             # Add coastlines
             ax.coastlines()
@@ -191,7 +183,8 @@ class AreaPlotter(Plot):
 
 filePlotter = DatasetPlotter("joined.nc")
 filePlotter.generate_time_index_list(3)
-hh_lat = 53.55
-hh_lon = 9.95
-#filePlotter.plot_grid(hh_lon, hh_lat, 9, 9)
-filePlotter.plot_area(Area(hh_lon - 20, hh_lon + 20, hh_lat - 20, hh_lat + 20))
+hh_lat = 0
+hh_lon = 0
+# filePlotter.plot()
+# filePlotter.plot_grid(hh_lon, hh_lat, 9, 9)
+filePlotter.plot_area(Area(hh_lon - 2, hh_lon + 2, hh_lat - 2, hh_lat + 2))
