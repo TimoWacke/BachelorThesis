@@ -5,6 +5,7 @@ import netCDF4 as nc
 import numpy as np
 import os
 import shutil
+import subprocess
 
 class DataSet:
     def __init__(self, path):
@@ -29,7 +30,7 @@ class DataSet:
             raise ValueError(f"Time units {self.units} not yet supported!")
 
     def get_n_random_times(self, n):
-        return sorted(np.random.choice(len(self.time), n))
+        return sorted(np.random.choice(len(self.time), n, replace=False))
 
     def find_nearest(self, array, value):
         idx = np.searchsorted(array, value, side="right")
@@ -81,6 +82,43 @@ class DataSet:
         # calculate human-readable date and time
         date_at_idx = self.start_date + timedelta(seconds=self.time[time_index] * self.units)
         return date_at_idx.strftime("%Y-%m-%d %H:%M:%S")
+    
+    def save_area_crop_copy(self, area, path):
+        # create a copy of the dataset
+        shutil.copyfile(self.path, path)
+
+        lon_slice, lat_slice = self.crop_area(area)
+        min_lon_idx = self.lon[lon_slice][0]
+        max_lon_idx = self.lon[lon_slice][-1]
+        min_lat_idx = self.lat[lat_slice][0]
+        max_lat_idx = self.lat[lat_slice][-1]
+
+        cdo_command = f"cdo sellonlatbox,{min_lon_idx},{max_lon_idx},{min_lat_idx},{max_lat_idx} {self.path} {path}"
+        subprocess.run(cdo_command, shell=True)
+
+    def save_time_crop_copy(self, min_time, max_time, path):
+        # create a copy of the dataset
+        shutil.copyfile(self.path, path)
+
+        min_idx = self.get_time_index(min_time)
+        max_idx = self.get_time_index(max_time)
+
+        cdo_command = f"cdo seltimestep,{min_idx}/{max_idx} {self.path} {path}"
+        subprocess.run(cdo_command, shell=True)
+
+    def save_select_times_copy(self, time_index_list, path):
+        # create a copy of the dataset
+        shutil.copyfile(self.path, path)
+
+        cdo_command = f"cdo seltimestep,{','.join(map(str, time_index_list))} {self.path} {path}"
+        subprocess.run(cdo_command, shell=True)
+
+    def save_delete_times_copy(self, time_index_list, path):
+        # create a copy of the dataset
+        shutil.copyfile(self.path, path)
+
+        cdo_command = f"cdo delete,timestep={','.join(map(str, time_index_list))} {self.path} {path}"
+        subprocess.run(cdo_command, shell=True)
 
 class Area:
     def __init__(self, min_lon, max_lon, min_lat, max_lat):
@@ -119,6 +157,8 @@ class Plot:
         self.lon_slice = slice(None)
         self.lat_slice = slice(None)
         self.time_index_list = [0]
+        self.vmin = None
+        self.vmax = None
 
     def generate_time_index_list(self, n):
         self.time_index_list = self.dataset.get_n_random_times(n)
@@ -136,7 +176,7 @@ class Plot:
             _lon = self.dataset.lon[self.lon_slice]
             _lat = self.dataset.lat[self.lat_slice]
             _data = self.dataset.dataset.variables[var][time_index, self.lat_slice, self.lon_slice]
-            pcm = ax.pcolormesh(_lon, _lat, _data, cmap='viridis', shading='auto')
+            pcm = ax.pcolormesh(_lon, _lat, _data, cmap='viridis', shading='auto', vmin=self.vmin, vmax=self.vmax)
 
             # Add coastlines
             ax.coastlines()
@@ -183,7 +223,7 @@ class AreaPlotter(Plot):
 
 
 filePlotter = DatasetPlotter("joined.nc")
-filePlotter.time_index_list = [9]
+
 hh_lat = 53.55
 hh_lon = 9
 filePlotter.plot()
