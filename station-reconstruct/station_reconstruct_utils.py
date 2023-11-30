@@ -31,7 +31,10 @@ class DataSet:
 
         unit_str = self.dataset.variables['time'].units
         units = unit_str.split(" ")[0]  # can be hours, days etc.
-        self.start_date = datetime.strptime(unit_str, f"{units} since %Y-%m-%d %H:%M:%S")
+        try:
+            self.start_date = datetime.strptime(unit_str, f"{units} since %Y-%m-%d %H:%M:%S")
+        except ValueError:
+            self.start_date = datetime.strptime(unit_str, f"{units} since %Y-%m-%d")
 
         # convert units to seconds
         if units == "hours":
@@ -53,6 +56,7 @@ class DataSet:
 
     def crop_grid(self, given_lon, given_lat, width_idx, height_idx):
         given_lon = (given_lon + 360) % 360
+
         def find_interval(array, value, width):
             if width % 2 == 0:
                 min_idx = np.searchsorted(array, value, side="left") - width // 2 + 1
@@ -60,6 +64,7 @@ class DataSet:
                 min_idx = self.find_nearest(array, value) - width // 2
             max_idx = min_idx + width
             return min_idx, max_idx
+
         print("lon interval", find_interval(self.lon, given_lon, width_idx))
         lon_min_idx, lon_max_idx = find_interval(self.lon, given_lon, width_idx)
         lat_min_idx, lat_max_idx = find_interval(self.lat, given_lat, height_idx)
@@ -78,7 +83,6 @@ class DataSet:
 
         return slice(min_lon_idx, max_lon_idx), slice(min_lat_idx, max_lat_idx)
 
-
     def crop_time(self, min_time, max_time):
         min_idx = self.get_time_index(min_time)
         max_idx = self.get_time_index(max_time)
@@ -90,11 +94,11 @@ class DataSet:
         # convert to seconds
         return round(offset_time.total_seconds() / self.units)
 
-    def human_readable_time(self, time_index):
+    def time_at_index(self, time_index):
         # calculate human-readable date and time
         date_at_idx = self.start_date + timedelta(seconds=self.time[time_index] * self.units)
         return date_at_idx.strftime("%Y-%m-%d %H:%M:%S")
-    
+
     def save_area_crop_copy(self, area, path):
         # create a copy of the dataset
         shutil.copyfile(self.path, path)
@@ -131,6 +135,7 @@ class DataSet:
 
         cdo_command = f"cdo delete,timestep={','.join(map(str, time_index_list))} {self.path} {path}"
         subprocess.run(cdo_command, shell=True)
+
 
 class Area:
     def __init__(self, min_lon, max_lon, min_lat, max_lat):
@@ -172,7 +177,6 @@ class Plot:
         self.vmin = None
         self.vmax = None
         self.get_time_index_list = lambda: self.time_index_list
-
 
     def generate_time_index_list(self, n):
         self.time_index_list = self.dataset.get_n_random_times(n)
