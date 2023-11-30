@@ -7,12 +7,24 @@ import os
 import shutil
 import subprocess
 
+
 class DataSet:
-    def __init__(self, path):
-        self.units = None
-        self.start_date = None
-        self.path = path
-        self.dataset = nc.Dataset(path)
+    def __init__(self, folder_path, name, replace_existing=True):
+        self.name = name
+
+        if not os.path.exists(f"data-sets"):
+            # make folder if it does not exist
+            os.mkdir("data-sets")
+        self.path = f"data-sets/{self.name}.nc"
+
+        if replace_existing:
+            if os.path.exists(self.path):
+                os.remove(self.path)
+            # join all *.nc files in folder to one dataset
+            cdo_command = f"cdo cat {folder_path}/*.nc {self.path}"
+            subprocess.run(cdo_command, shell=True)
+
+        self.dataset = nc.Dataset(self.path)
         self.lon = self.dataset.variables['lon'][:]
         self.lat = self.dataset.variables['lat'][:]
         self.time = self.dataset.variables['time'][:]
@@ -159,12 +171,14 @@ class Plot:
         self.time_index_list = [0]
         self.vmin = None
         self.vmax = None
+        self.get_time_index_list = lambda: self.time_index_list
+
 
     def generate_time_index_list(self, n):
         self.time_index_list = self.dataset.get_n_random_times(n)
 
     def plot(self, var="tas"):
-        for time_index in self.time_index_list:
+        for time_index in self.get_time_index_list():
             # set title
             title = self.dataset.path
             title += f"\n{self.area}"
@@ -194,9 +208,9 @@ class Plot:
 
 
 class DatasetPlotter(Plot):
-    def __init__(self, path):
+    def __init__(self, dataset):
         super().__init__()
-        self.dataset = DataSet(path)
+        self.dataset = dataset
         self.area = "full area"
 
     def plot_area(self, area: Area):
@@ -214,18 +228,35 @@ class DatasetPlotter(Plot):
 class AreaPlotter(Plot):
     def __init__(self, area: Area):
         super().__init__()
+        self.get_time_index_list = None
         self.dataset = None
         self.area = area
 
+    def generate_time_index_list(self, n):
+        # overwrite self.get_time_index_list() to use get_n_random_times once self.dataset is set,
+        self.get_time_index_list = lambda: self.dataset.get_n_random_times(n)
+
     def plot_dataset(self, dataset: DataSet):
-            self.dataset = DataSet(dataset.path)
-            self.lon_slice, self.lat_slice = self.dataset.crop_area(self.area)
+        self.dataset = dataset
+        self.lon_slice, self.lat_slice = self.dataset.crop_area(self.area)
+        self.plot()
+        self.lon_slice, self.lat_slice = slice(None), slice(None)
 
 
-filePlotter = DatasetPlotter("joined.nc")
+class Station:
+    def __init__(self, folder_path, name):
+        self.folder_path = folder_path
+        self.dataset = DataSet(folder_path, name)
 
-hh_lat = 53.55
-hh_lon = 9
-filePlotter.plot()
-# filePlotter.plot_grid(hh_lon, hh_lat, 9, 9)
-# filePlotter.plot_area(Area(hh_lon - 4, hh_lon + 4, hh_lat - 8, hh_lat + 4))
+        # get station lat and lon
+        self.lat = self.dataset.lat[0]
+        self.lon = self.dataset.lon[0]
+
+
+if __name__ == "__main__":
+    hh_lon = 9.95
+    hh_lat = 53.55
+    Hamburg = Area(hh_lon - 2, hh_lon + 2, hh_lat - 2, hh_lat + 2)
+    HamburgPlotter = AreaPlotter(Hamburg)
+    HamburgPlotter.generate_time_index_list(1)
+    HamburgPlotter.plot_dataset(DataSet("era5", "era5_july-sept"))
