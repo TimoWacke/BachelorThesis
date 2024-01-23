@@ -8,5 +8,7 @@ __pycache__/
 *$py.class
 
 # Climate data
-station-reconstruct/era5/*
-station-reconstruct/joined.nc
+station-reconstruct/slurm_logs
+station-reconstruct
+station-reconstruct/station_data_as_dat
+station-reconstruct/station_data_as_nc
