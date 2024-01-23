@@ -8,7 +8,6 @@ __pycache__/
 *$py.class
 
 # Climate data
-station-reconstruct/slurm_logs
-station-reconstruct
-station-reconstruct/station_data_as_dat
-station-reconstruct/station_data_as_nc
+station_reconstruct/slurm_logs
+station_reconstruct/station_data_as_dat
+station_reconstruct/station_data_as_nc
