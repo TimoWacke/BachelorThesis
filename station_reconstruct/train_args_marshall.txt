@@ -1,0 +1,16 @@
+--data-root-dir /work/bm1159/XCES/xces-work/k203179/data/
+--model-dir /work/bm1159/XCES/xces-work/k203179/data/
+--data-names era5_for_marshall.nc,expected_marshall.nc
+--n-target-data 1
+--data-types tas,tas
+--device cpu
+--n-filters 18
+--out-channels 1
+--snapshot-dir /work/bm1159/XCES/xces-work/k203179/snapshots
+--n-threads 0
+--max-iter 200000
+--eval-timesteps 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+--log-interval 2502
+--loss-criterion 3
+--pooling-layers 0
+--normalize-data

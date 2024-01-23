@@ -1,0 +1,13 @@
+--data-root-dir /work/bm1159/XCES/xces-work/k203179/data/
+--model-dir /work/bm1159/XCES/xces-work/k203179/snapshots/ckpt
+--model-names final.pth
+--data-names era5_for_soltau.nc
+--data-types tas
+--evaluation-dirs /home/k/k203179/reconstructing-ai-for-weather-station-data/station_reconstruct/outputs
+--device cpu
+--n-filters 18
+--out-channels 1
+--normalize-data
+--loss-criterion 3
+--pooling-layers 0
+--use-train-stats
