@@ -37,8 +37,8 @@ class CreateMatchingEra5FileForStationData:
         self.target_station_path = os.path.join(
             target_folder, self.station_name.lower() + ".nc")
         self.station = Station(station_path, station_name)
-        self.station.dataset.apply_local_time_utc_offset(
-            *self.station.get_lon_lat())
+        # self.station.dataset.apply_local_time_utc_offset(
+        #    *self.station.get_lon_lat())
         self.era5_folder = era5_folder
         self.selected_era5_files = []
         self.grid_width = grid_width
@@ -78,8 +78,9 @@ class CreateMatchingEra5FileForStationData:
 
         for file in found_files:
             if file.endswith(".nc"):
-                date = int(file.split("_")[-1].split("-")[0])
-                if min_date <= date <= max_date:
+                era_min_date = int(file.split("_")[-1].split("-")[0])
+                era_max_date = int(file.split("_")[-1].split("-")[1].split(".")[0])
+                if min_date <= era_max_date and max_date >= era_min_date:
                     self.selected_era5_files.append(file)
 
         # if folder does exist clear it
@@ -181,10 +182,10 @@ class CreateMatchingEra5FileForStationData:
 
         # station delete idinces
         station_delete_indices = np.concatenate(
-            (invalid_station_values, invalid_era5_values - era5_start_idx))
+            (invalid_station_values - station_start_idx, invalid_era5_values - era5_start_idx))
         # era5 delete indices
         era5_delete_indices = np.concatenate(
-            (invalid_era5_values, invalid_station_values - station_start_idx))
+            (invalid_era5_values - era5_start_idx, invalid_station_values - station_start_idx))
 
         # unique
         station_delete_indices = np.unique(station_delete_indices)
@@ -212,13 +213,13 @@ class CreateMatchingEra5FileForStationData:
 
         def cdo_delete_in_batches(original_path, delete_indices, batch_size=1000):
             n = len(delete_indices) / batch_size
-            n = max(1, n)
+            n = int(max(1, n))
             delete_indices_batches = np.array_split(delete_indices, n, axis=0)
             count_deleted = 0
             with tqdm(total=len(delete_indices)) as pbar:
                 for delete_indices_batch in delete_indices_batches:
-                    delete_indices_batch = delete_indices_batch - count_deleted + 1
-                    cdo_command = f"cdo delete,timestep={','.join(map(str, delete_indices_batch))} {original_path} {original_path}_t"
+                    delete_indices_batch = delete_indices_batch - count_deleted
+                    cdo_command = f"cdo delete,timestep={','.join(map(str, delete_indices_batch + 1))} {original_path} {original_path}_t"
                     subprocess.run(cdo_command, shell=True)
                     # move
                     subprocess.run(f"mv {original_path}_t {original_path}", shell=True)

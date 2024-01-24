@@ -141,7 +141,7 @@ class DatToNcConverter:
         hourly_df = df.resample("H").apply(custom_aggregation)
 
         # fill the non-NaN value into the temp column
-        hourly_df["temp"] = hourly_df[["bmp280_temp", "bmp180_temp", "bme_temp", "htu_temp"]].mean(axis = 1)
+        hourly_df["temp"] = hourly_df[["mcp9808"]].mean(axis = 1)
 
         return hourly_df
         

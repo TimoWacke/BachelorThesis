@@ -30,16 +30,16 @@ class TrainingsFilePair:
         self.test_folder = f"{self.data_folder}/test"
         self.train_folder = f"{self.data_folder}/train"
         self.val_folder = f"{self.data_folder}/val"
-
-        if os.path.exists(self.data_folder):
-            # remove old files
-            os.system(f"rm -rf {self.data_folder}")
-
+        
         if not os.path.exists(self.data_folder):
             os.mkdir(self.data_folder)
-            os.mkdir(f"{self.data_folder}/test")
-            os.mkdir(f"{self.data_folder}/train")
-            os.mkdir(f"{self.data_folder}/val")
+
+        for folder in [self.test_folder, self.train_folder, self.val_folder]:
+            if not os.path.exists(folder):
+                os.mkdir(folder)
+
+        for folder in [self.test_folder, self.train_folder, self.val_folder]:
+            subprocess.run(f"rm {folder}/*{self.station_file_name[:-3]}*", shell=True)
 
     def assert_file_compability(self):
         self_check = DataSet(self.station_file, "self_check")
@@ -121,9 +121,3 @@ class TrainingsFilePair:
         max_idx = crop_slice.stop
 
         return min_idx, max_idx
-        
-     
-
-
-trainingsFilePreparer = TrainingsFilePair("/work/bm1159/XCES/xces-work/k203179/data_sets/marshall.nc", "/work/bm1159/XCES/xces-work/k203179/data_sets/era5_for_marshall.nc")
-trainingsFilePreparer.prepare_trainings_files()
