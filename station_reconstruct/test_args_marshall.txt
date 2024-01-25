@@ -1,6 +1,6 @@
 --data-root-dir /work/bm1159/XCES/xces-work/k203179/data/
 --model-dir /work/bm1159/XCES/xces-work/k203179/snapshots_marshall/ckpt
---model-names 100000.pth
+--model-names 150000.pth
 --data-names era5_for_marshall.nc,cleaned_marshall.nc
 --n-target-data 1
 --data-types tas,tas
