@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 class TimeAndDateContextOverlay:
     
-    def __init__(self, width = 8, height = 8, scalar = 0.5):
+    def __init__(self, width = 8, height = 8, scalar = 1):
         self.width = width
         self.height = height
         self.scalar = scalar
@@ -61,7 +61,7 @@ class TimeAndDateContextOverlay:
         apply the overlay on the given dataset and variable
         """
         # open dataset in read and write mode
-        os.system(f"chmod +x {path}")
+        os.system("cp " + path + " " + path + "_copy")
         nc_dataset = nc.Dataset(path)
         data_set = DataSet(path) 
         
@@ -71,3 +71,5 @@ class TimeAndDateContextOverlay:
                 nc_dataset.variables["tas"][idx, :, :] = self.day_overlay(nc_dataset.variables["tas"][idx, :, :], timestamp)
                 nc_dataset.variables["tas"][idx, :, :] = self.year_overlay(nc_dataset.variables["tas"][idx, :, :], timestamp)
                 pbar.update(1)
+                
+        os.system("mv " + path + "_copy " + path)

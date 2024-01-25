@@ -8,9 +8,9 @@
 --out-channels 1
 --snapshot-dir /work/bm1159/XCES/xces-work/k203179/snapshots_barbados
 --n-threads 0
---max-iter 500000
+--max-iter 1000000
 --eval-timesteps 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
---log-interval 5000
+--log-interval 10000
 --loss-criterion 3
 --pooling-layers 0
 --normalize-data
