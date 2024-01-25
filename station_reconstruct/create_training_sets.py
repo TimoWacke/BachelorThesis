@@ -53,9 +53,9 @@ class TrainingsFilePair:
         # crop test files to one year
         min_idx, max_idx = self.find_year_indices(self.year)
         # cdo command
-        cdo_command = f"cdo seltimestep,{min_idx}/{max_idx} {self.reanalysis_file} {self.test_folder}/{self.reanalysis_file_name}"
+        cdo_command = f"cdo seltimestep,{min_idx+1}/{max_idx+1} {self.reanalysis_file} {self.test_folder}/{self.reanalysis_file_name}"
         subprocess.run(cdo_command, shell=True)
-        cdo_command = f"cdo seltimestep,{min_idx}/{max_idx} {self.station_file} {self.test_folder}/reality_{self.station_file_name}"
+        cdo_command = f"cdo seltimestep,{min_idx+1}/{max_idx+1} {self.station_file} {self.test_folder}/reality_{self.station_file_name}"
         subprocess.run(cdo_command, shell=True)
         # creating template for station with the grid dimension from era5 - in this test case will be filled with nans
         shutil.copyfile(f"{self.test_folder}/{self.reanalysis_file_name}", f"{self.test_folder}/expected_{self.station_file_name}")
@@ -67,6 +67,7 @@ class TrainingsFilePair:
         # copy random val values
         temp_dataset = DataSet(f"{self.val_folder}/temp_{self.station_file_name}", "temp")
         val_time_indices = temp_dataset.get_n_random_times(self.val)
+        val_time_indices = [i + 1 for i in val_time_indices]
 
         # copy cdo select times
         cdo = f"cdo seltimestep,{','.join(map(str, val_time_indices))} {self.val_folder}/temp_{self.reanalysis_file_name} {self.val_folder}/{self.reanalysis_file_name}"
