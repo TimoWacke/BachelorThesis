@@ -112,6 +112,13 @@ class TrainingsFilePair:
         if os.path.exists(f"{self.test_folder}/expected_{self.station_file_name}"):
             os.remove(f"{self.test_folder}/expected_{self.station_file_name}")
             
+        self.split_trainings_files_by_variables(["year", "intra_year", "intra_day"])
+     
+    def split_trainings_files_by_variables(self, variables):
+        for folder in [self.test_folder, self.train_folder, self.val_folder]:
+            for var in variables:
+                cdo = f"cdo selvar,{var} {folder}/era5_for_{self.station_file_name} {folder}/{var}_at_{self.station_file_name}"
+                subprocess.run(cdo, shell=True)  
 
     def find_year_indices(self, year):
         start_date = datetime(year, 1, 1)

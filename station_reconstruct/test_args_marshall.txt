@@ -1,14 +1,15 @@
 --data-root-dir /work/bm1159/XCES/xces-work/k203179/data/
 --model-dir /work/bm1159/XCES/xces-work/k203179/snapshots_marshall/ckpt
---model-names 700000.pth
---data-names era5_for_marshall.nc,cleaned_marshall.nc
+--model-names 100000.pth
+--data-names era5_for_marshall.nc,year_at_marshall.nc,intra_year_at_marshall.nc,intra_day_at_marshall.nc,cleaned_marshall.nc
+--data-types tas,year,intra_year,intra_day,tas
 --n-target-data 1
---data-types tas,tas
+--encoding-layers 3,3,3
+--pooling-layers 0,0,0
 --evaluation-dirs /home/k/k203179/reconstructing-ai-for-weather-station-data/station_reconstruct/outputs
 --device cpu
 --n-filters 18
 --out-channels 1
 --loss-criterion 3
---pooling-layers 0
 --normalize-data
 --use-train-stats

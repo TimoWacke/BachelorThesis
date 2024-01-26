@@ -1,8 +1,8 @@
 --data-root-dir /work/bm1159/XCES/xces-work/k203179/data/
 --model-dir /work/bm1159/XCES/xces-work/k203179/data/
---data-names era5_for_vienna.nc,expected_vienna.nc
+--data-names era5_for_vienna.nc,expected_vienna.nc,era5_for_vienna.nc,era5_for_vienna.nc,era5_for_vienna.nc
 --n-target-data 1
---data-types tas,tas
+--data-types tas,tas,year,intra_year,intra_day
 --device cpu
 --n-filters 18
 --out-channels 1

@@ -135,7 +135,7 @@ class DatToNcConverter:
             if series.nunique() <= 2:
                 return np.nan
             else:
-                return series.mean()
+                return np.median(series)
 
         # merge all minutely data into one row using the mean
         hourly_df = df.resample("H").apply(custom_aggregation)
