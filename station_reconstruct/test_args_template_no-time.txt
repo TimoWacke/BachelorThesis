@@ -1,0 +1,14 @@
+--data-root-dir /work/bm1159/XCES/xces-work/k203179/data/
+--model-dir /work/bm1159/XCES/xces-work/k203179/SNAPSHOTDIR/ckpt
+--model-names ITERATION.pth
+--data-names era5_for_STATIONNAME.nc,cleaned_STATIONNAME.nc
+--data-types tas,tas
+--n-target-data 1
+--pooling-layers 0
+--evaluation-dirs /home/k/k203179/reconstructing-ai-for-weather-station-data/station_reconstruct/outputs
+--device cpu
+--n-filters 18
+--out-channels 1
+--loss-criterion 3
+--normalize-data
+--use-train-stats
