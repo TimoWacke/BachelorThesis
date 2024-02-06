@@ -1,7 +1,7 @@
 --data-root-dir /work/bm1159/XCES/xces-work/k203179/data/
 --model-dir /work/bm1159/XCES/xces-work/k203179/data/
---data-names era5_for_marshall.nc,year_at_marshall.nc,intra_year_at_marshall.nc,intra_day_at_marshall.nc,expected_marshall.nc
---data-types tas,year,intra_year,intra_day,tas
+--data-names trailing_tas_at_marshall.nc,era5_for_marshall_leading_trailing.nc,leading_tas_at_marshall.nc,expected_marshall.nc
+--data-types trailing_tas,tas,leading_tas,tas
 --n-target-data 1
 --encoding-layers 3,3,3
 --pooling-layers 0,0,0
@@ -12,6 +12,6 @@
 --n-threads 0
 --max-iter 1000000
 --eval-timesteps 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
---log-interval 10000
+--log-interval 5000
 --loss-criterion 3
 --normalize-data

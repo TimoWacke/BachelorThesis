@@ -1,7 +1,7 @@
 --data-root-dir /work/bm1159/XCES/xces-work/k203179/data/
 --model-dir /work/bm1159/XCES/xces-work/k203179/data/
---data-names era5_for_vienna.nc,year_at_vienna.nc,intra_year_at_vienna.nc,intra_day_at_vienna.nc,expected_vienna.nc
---data-types tas,year,intra_year,intra_day,tas
+--data-names trailing_tas_at_vienna.nc,era5_for_vienna_leading_trailing.nc,leading_tas_at_vienna.nc,expected_vienna.nc
+--data-types trailing_tas,tas,leading_tas,tas
 --n-target-data 1
 --encoding-layers 3,3,3
 --pooling-layers 0,0,0

@@ -25,7 +25,10 @@ class DataSet:
         try:
             self.start_date = datetime.strptime(unit_str, f"{units} since %Y-%m-%d %H:%M:%S")
         except ValueError:
-            self.start_date = datetime.strptime(unit_str, f"{units} since %Y-%m-%d")
+            try:
+                self.start_date = datetime.strptime(unit_str, f"{units} since %Y-%m-%dT%H:%M:%S")
+            except ValueError:
+                self.start_date = datetime.strptime(unit_str, f"{units} since %Y-%m-%d")
 
         # convert units to seconds
         if units == "hours":
@@ -175,7 +178,7 @@ class Area:
 class Plot:
     def __init__(self):
         self.dataset = None
-        self.area = "full area"
+        self.area = ""
         self.lon_slice = slice(None)
         self.lat_slice = slice(None)
         self.time_index_list = [0]
@@ -186,41 +189,51 @@ class Plot:
     def generate_time_index_list(self, n):
         self.time_index_list = self.dataset.get_n_random_times(n)
 
-    def plot(self, var="tas"):
+    def plot(self, vars=["tas"]):
+        
+        # if not list make it a list
+        if not isinstance(vars, list):
+            vars = [vars]
+        
         for time_index in self.get_time_index_list():
             # set title
-            title = self.dataset.name if self.dataset.name else self.dataset.path
-            title += f"\n{self.area}"
+            title = self.dataset.name if self.dataset.name else self.dataset.path.split("/")[-1]
+            if self.area:
+                title += f"\n{self.area}"
             title += f"\n{self.dataset.time_at_index(time_index)}"
 
-            # plot
-            fig, ax = plt.subplots(subplot_kw={'projection': ccrs.PlateCarree()})
-            # Plot the temperature data with a quadratic colormap
-            _lon = self.dataset.lon[self.lon_slice]
-            _lat = self.dataset.lat[self.lat_slice]
-            _data = self.dataset.dataset.variables[var][time_index, self.lat_slice, self.lon_slice]
-            pcm = ax.pcolormesh(_lon, _lat, _data, cmap='viridis', shading='auto', vmin=self.vmin, vmax=self.vmax)
+            for var in vars:
 
-            # Add coastlines
-            ax.coastlines()
+                # plot
+                fig, ax = plt.subplots(subplot_kw={'projection': ccrs.PlateCarree()})
+                # Plot the temperature data with a quadratic colormap
+                _lon = self.dataset.lon[self.lon_slice]
+                _lat = self.dataset.lat[self.lat_slice]
+                _data = self.dataset.dataset.variables[var][time_index, self.lat_slice, self.lon_slice]
+                pcm = ax.pcolormesh(_lon, _lat, _data, cmap='viridis', shading='auto', vmin=self.vmin, vmax=self.vmax)
 
-            # Add colorbar
-            cbar = plt.colorbar(pcm, ax=ax, label='Temperature')
+                # Add coastlines
+                ax.coastlines()
 
-            # Set labels and title
-            ax.set_xlabel('Longitude')
-            ax.set_ylabel('Latitude')
-            plt.title(title)
+                # Add colorbar
+                cbar = plt.colorbar(pcm, ax=ax, label='Temperature')
 
-            # Show the plot
-            plt.show()
+                # Set labels and title
+                ax.set_xlabel('Longitude')
+                ax.set_ylabel('Latitude')
+                plt.title(title + (f"\n[{var}]" if len(vars) > 1 else ""))
+
+                # position title a higher
+                plt.subplots_adjust(top=1.2)
+                
+                # Show the plot
+                plt.show()
 
 
 class DatasetPlotter(Plot):
     def __init__(self, dataset):
         super().__init__()
         self.dataset = dataset
-        self.area = "full area"
 
     def plot_area(self, area: Area):
         self.area = area

@@ -30,12 +30,11 @@ class CreateMatchingEra5FileForStationData:
                 "/" + self.station_name.lower() + ".nc"
         unique_id = "_" + self.station_name.lower()
         self.target_temp_era5_folder = os.path.join(target_folder + "_era5-crop" + unique_id)
-        self.target_temp_era5_path = os.path.join(
-            target_folder, "era5_for_" + self.station_name.lower() + ".nc")
         self.target_era5_path = os.path.join(
             target_folder, "era5_for_" + self.station_name.lower() + ".nc")
         self.target_station_path = os.path.join(
             target_folder, self.station_name.lower() + ".nc")
+        self.target_era5_for_the_gaps_path = os.path.join(target_folder, "era5_for_the_gaps_" + self.station_name.lower() + ".nc")
         self.station = Station(station_path, station_name)
         # self.station.dataset.apply_local_time_utc_offset(
         #    *self.station.get_lon_lat())
@@ -128,17 +127,17 @@ class CreateMatchingEra5FileForStationData:
 
     def merge_era5_files(self) -> str:
 
-        if os.path.exists(self.target_temp_era5_path):
-            os.remove(self.target_temp_era5_path)
+        if os.path.exists(self.target_era5_path):
+            os.remove(self.target_era5_path)
 
         # cdo merge command
-        cdo_command = f"cdo cat {self.target_temp_era5_folder}/*.nc {self.target_temp_era5_path}"
+        cdo_command = f"cdo cat {self.target_temp_era5_folder}/*.nc {self.target_era5_path}"
         subprocess.run(cdo_command, shell=True)
 
-        return self.target_temp_era5_path
+        return self.target_era5_path
 
     def transform_era5_to_match_station_time_dimension(self) -> None:
-        era5_dataset = DataSet(self.target_temp_era5_path)
+        era5_dataset = DataSet(self.target_era5_path)
         station_dataset = self.station.dataset
         # get later start date
         start_date = max(self.station.dataset.start_date,
@@ -171,29 +170,14 @@ class CreateMatchingEra5FileForStationData:
             end_time_idx=station_end_idx,
         )
 
-        # get invalid values in era5 dataset
-        invalid_era5_values = era5_dataset.find_invalid_values(
-            start_time_idx=era5_start_idx,
-            end_time_idx=era5_end_idx,
-        )
         
         print(f"Found {len(invalid_station_values)} invalid values in station dataset")
-        print(f"Found {len(invalid_era5_values)} invalid values in era5 dataset")
 
         # station delete idinces
-        station_delete_indices = np.concatenate(
-            (invalid_station_values - station_start_idx, invalid_era5_values - era5_start_idx))
-        # era5 delete indices
-        era5_delete_indices = np.concatenate(
-            (invalid_era5_values - era5_start_idx, invalid_station_values - station_start_idx))
-
-        # unique
-        station_delete_indices = np.unique(station_delete_indices)
-        era5_delete_indices = np.unique(era5_delete_indices)
-
+        delete_indices = invalid_station_values - station_start_idx
 
         station_quick_temp_path = self.station.path + "_temp"
-        era5_quick_temp_path = self.target_temp_era5_path + "_temp"        
+        era5_quick_temp_path = self.target_era5_path + "_temp"        
         
 
         if os.path.exists(station_quick_temp_path):
@@ -204,21 +188,35 @@ class CreateMatchingEra5FileForStationData:
         cdo_command = f"cdo seltimestep,{station_start_idx + 1}/{station_end_idx + 1} {self.station.path} {station_quick_temp_path}"
         subprocess.run(cdo_command, shell=True)
 
-
         if os.path.exists(era5_quick_temp_path):
             os.remove(era5_quick_temp_path)
-        cdo_command = f"cdo seltimestep,{era5_start_idx + 1}/{era5_end_idx + 1} {self.target_temp_era5_path} {era5_quick_temp_path}"
+        cdo_command = f"cdo seltimestep,{era5_start_idx + 1}/{era5_end_idx + 1} {self.target_era5_path} {era5_quick_temp_path}"
         subprocess.run(cdo_command, shell=True)
 
+        print("Cropped time axis to intersection of station and era5 dataset")
 
-        def cdo_delete_in_batches(original_path, delete_indices, batch_size=1000):
+        def cdo_delete_in_batches(original_path, delete_indices, batch_size=3000, save_deleted_to=False):
             n = len(delete_indices) / batch_size
             n = int(max(1, n))
             delete_indices_batches = np.array_split(delete_indices, n, axis=0)
             count_deleted = 0
+            
+            if save_deleted_to:
+                os.system(f"rm {save_deleted_to}")
+            
             with tqdm(total=len(delete_indices)) as pbar:
                 for delete_indices_batch in delete_indices_batches:
                     delete_indices_batch = delete_indices_batch - count_deleted
+                    # copy over deleted timesteps for gap record
+                    if save_deleted_to:
+                        cdo_command = f"cdo seltimestep,{','.join(map(str, delete_indices_batch + 1))} {original_path} {save_deleted_to}" + ("_t" if os.path.exists(save_deleted_to) else "")
+                        subprocess.run(cdo_command, shell=True)
+                        if os.path.exists(save_deleted_to):                            
+                            # merge
+                            cdo_command = f"cdo cat {save_deleted_to} {save_deleted_to}_t {save_deleted_to}_temp"
+                            subprocess.run(cdo_command, shell=True)
+                            subprocess.run(f"mv {save_deleted_to}_temp {save_deleted_to}", shell=True)
+                            subprocess.run(f"rm {save_deleted_to}_t", shell=True)
                     cdo_command = f"cdo delete,timestep={','.join(map(str, delete_indices_batch + 1))} {original_path} {original_path}_t"
                     subprocess.run(cdo_command, shell=True)
                     # move
@@ -228,9 +226,11 @@ class CreateMatchingEra5FileForStationData:
 
             print(f"Deleted {count_deleted} timesteps from {original_path} dataset because of invalid values")
 
-        cdo_delete_in_batches(station_quick_temp_path, station_delete_indices)
-        cdo_delete_in_batches(era5_quick_temp_path, era5_delete_indices)
-            
+        print("Deleting timesteps without measurements from station dataset")
+        cdo_delete_in_batches(station_quick_temp_path, delete_indices)
+        print("Deleting time steps without measurements from era5 dataset")
+        cdo_delete_in_batches(era5_quick_temp_path, delete_indices , save_deleted_to=self.target_era5_for_the_gaps_path)
+        
         if os.path.exists(self.target_station_path):
                 os.remove(self.target_station_path)
         if os.path.exists(self.target_era5_path):

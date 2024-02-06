@@ -1,7 +1,7 @@
 --data-root-dir /work/bm1159/XCES/xces-work/k203179/data/
 --model-dir /work/bm1159/XCES/xces-work/k203179/SNAPSHOTDIR/ckpt
 --model-names ITERATION.pth
---data-names era5_for_STATIONNAME.nc,cleaned_STATIONNAME.nc
+--data-names era5_for_STATIONNAME_leading_trailing.nc,cleaned_STATIONNAME.nc
 --data-types tas,tas
 --n-target-data 1
 --pooling-layers 0
