@@ -112,11 +112,15 @@ class TrainingsFilePair:
         if os.path.exists(f"{self.test_folder}/expected_{self.station_file_name}"):
             os.remove(f"{self.test_folder}/expected_{self.station_file_name}")
             
-        self.split_trainings_files_by_variables(["year", "intra_year", "intra_day"])
+        self.split_trainings_files_by_variables(["year", "intra_year", "intra_day", "step_before", "step_after"])
      
     def split_trainings_files_by_variables(self, variables):
         for folder in [self.test_folder, self.train_folder, self.val_folder]:
+            available_variables = DataSet(f"{folder}/era5_for_{self.station_file_name}").dataset.variables.keys()
             for var in variables:
+                if var not in available_variables:
+                    continue
+                print(f"Splitting {var} in {folder}")
                 cdo = f"cdo selvar,{var} {folder}/era5_for_{self.station_file_name} {folder}/{var}_at_{self.station_file_name}"
                 subprocess.run(cdo, shell=True)  
 

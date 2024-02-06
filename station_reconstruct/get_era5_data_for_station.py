@@ -78,8 +78,8 @@ class CreateMatchingEra5FileForStationData:
 
         for file in found_files:
             if file.endswith(".nc"):
-                era_min_date = int(file.split("_")[-1].split("-")[0])
-                era_max_date = int(file.split("_")[-1].split("-")[1].split(".")[0])
+                era_min_date = int(file.split("_")[-1].split("-")[0]) + 1 # margin so we could use leading and trailing timesteps
+                era_max_date = int(file.split("_")[-1].split("-")[1].split(".")[0]) - 1
                 if min_date <= era_max_date and max_date >= era_min_date:
                     self.selected_era5_files.append(file)
 

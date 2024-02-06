@@ -189,7 +189,7 @@ class Plot:
     def plot(self, var="tas"):
         for time_index in self.get_time_index_list():
             # set title
-            title = self.dataset.path
+            title = self.dataset.name if self.dataset.name else self.dataset.path
             title += f"\n{self.area}"
             title += f"\n{self.dataset.time_at_index(time_index)}"
 
