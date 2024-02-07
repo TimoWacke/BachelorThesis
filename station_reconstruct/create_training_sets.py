@@ -111,16 +111,21 @@ class TrainingsFilePair:
         
             os.system(f"mv {self.test_folder}/temp_era5_for_the_gaps_{self.station_file_name} {self.test_folder}/era5_for_the_gaps_{self.station_file_name}")
             
-        self.split_trainings_files_by_variables(["year", "intra_year", "intra_day", "leading_tas", "trailing_tas"])
+        self.split_trainings_files_by_variables(self.reanalysis_file_name, ["year", "intra_year", "intra_day", "leading_tas", "trailing_tas"])
+        self.split_trainings_files_by_variables(f"era5_for_the_gaps_{self.station_file_name}", ["year", "intra_year", "intra_day", "leading_tas", "trailing_tas"])
      
-    def split_trainings_files_by_variables(self, variables):
+    def split_trainings_files_by_variables(self, file_name, variables):
         for folder in [self.test_folder, self.train_folder, self.val_folder]:
-            available_variables = DataSet(f"{folder}/{self.reanalysis_file_name}").dataset.variables.keys()
+            if not os.path.exists(f"{folder}/{file_name}"):
+                continue
+            available_variables = DataSet(f"{folder}/{file_name}").dataset.variables.keys()
             for var in variables:
                 if var not in available_variables:
                     continue
                 print(f"Splitting {var} in {folder}")
-                cdo = f"cdo selvar,{var} {folder}/{self.reanalysis_file_name} {folder}/{var}_at_{self.station_file_name}"
+                cdo = f"cdo selvar,{var} {folder}/{file_name} {folder}/{var}_at_{self.station_file_name}"
+                if "_the_gaps_" in file_name:
+                    cdo = f"cdo selvar,{var} {folder}/{file_name} {folder}/{var}_at_the_gaps_{self.station_file_name}"
                 subprocess.run(cdo, shell=True)  
 
     def find_year_indices(self, year):
