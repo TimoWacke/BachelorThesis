@@ -21,3 +21,4 @@ dependencies:
   - cartopy>=0.20.2
   - numba>=0.55.1
   - pytest
+  - apache-airflow>=2.2.3
