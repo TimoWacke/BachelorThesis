@@ -1,5 +1,5 @@
 --data-root-dir /work/bm1159/XCES/xces-work/k203179/data/
---model-dir /work/bm1159/XCES/xces-work/k203179/SNAPSHOTDIR/ckpt
+--model-dir /work/bm1159/XCES/xces-work/k203179/SNAPSHOTDIR_NOTE/ckpt
 --model-names ITERATION.pth
 --data-names era5_for_STATIONNAME_leading_trailing.nc,cleaned_STATIONNAME.nc
 --data-types tas,tas

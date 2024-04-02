@@ -23,9 +23,12 @@ import pandas as pd
 import tqdm
 import re
 
+from map_minutes_to_grid import mapping_rule
+
 class DatToNcConverter:
 
-    def __init__(self, name, directory = None, target_directory = None):
+    def __init__(self, name, directory = None, target_directory = None, hourly = False,
+                 grid_blueprint = None):
         self.name = name
         self.directory = directory if directory is not None else os.getcwd() + "/station_data_as_dat/" + self.name.capitalize()
         self.target_directory = target_directory if target_directory is not None else os.getcwd() + "/station_data_as_nc/"
@@ -33,6 +36,8 @@ class DatToNcConverter:
         self.dataframe = None
         self.nc_data = None
         self.meta_data = self.extract_meta_data()
+        self.hourly = hourly
+        self.grid_blueprint = grid_blueprint
 
     # determine files in directory
 
@@ -118,7 +123,7 @@ class DatToNcConverter:
     # convert dataframe to netcdf compatible format datatype
 
     def transform_partial(self, df):
-                # convert year mon day hour min columns to datetime object (as int)
+         # convert year mon day hour min columns to datetime object (as int)
         df["datetime"] = df.apply(lambda row: datetime(int(row["year"]), int(row["mon"]), int(row["day"]), int(row["hour"]), int(row["min"])), axis = 1)
         # drop year mon day hour min columns
         df = df.drop(columns = ["year", "mon", "day", "hour", "min"])
@@ -130,6 +135,13 @@ class DatToNcConverter:
         df = df.set_index("datetime")
 
 
+        # use certain sensors
+        df["temp"] = df[["mcp9808"]].mean(axis = 1)
+                
+        # convert temp from C to K
+        df["temp"] = df["temp"] + 273.15
+        
+
         def custom_aggregation(series):
             # If all values are the same or NaN, return NaN; otherwise, return the mean
             if series.nunique() <= 2:
@@ -137,11 +149,21 @@ class DatToNcConverter:
             else:
                 return np.median(series)
 
-        # merge all minutely data into one row using the mean
-        hourly_df = df.resample("H").apply(custom_aggregation)
-
-        # fill the non-NaN value into the temp column
-        hourly_df["temp"] = hourly_df[["mcp9808"]].mean(axis = 1)
+        if self.hourly:
+            # merge all minutely data into one row using the mean
+            hourly_df = df.resample("H").apply(custom_aggregation)
+        else:
+            
+            hourly_df = pd.DataFrame(columns = ["temp"])
+            
+            for hour, hour_data in df.resample("H"):
+                hourly_temp_array = np.nan * np.zeros((8, 8))
+                
+                for minute, temp in zip(hour_data.index.minute, hour_data["temp"].values):
+                    row, col = mapping_rule[minute]
+                    hourly_temp_array[row, col] = temp
+                    
+                hourly_df.loc[hour, 'temp'] = hourly_temp_array
 
         return hourly_df
         
@@ -155,29 +177,52 @@ class DatToNcConverter:
             "uv_light": "uv_light",
             "ir_light": "ir_light",
         }
+        
+        # intersection of columns in dataframe and mapping
+        intersect_columns = list(set(self.dataframe.columns).intersection(set(mapping.keys())))
 
         # drop columns not in mapping
-        self.dataframe = self.dataframe[list(mapping.keys())]
+        self.dataframe = self.dataframe[intersect_columns]
+        
+        if self.hourly:
+            self.dataframe = self.dataframe.dropna(subset=["temp"])
 
         # rename columns
         self.dataframe = self.dataframe.rename(columns = mapping)
-        
-        # convert temp from C to K
-        self.dataframe["tas"] = self.dataframe["tas"] + 273.15
-        
+
     
     def load(self, location):
-
-        ds = xr.Dataset(
-            {
-                "tas": (["time", "lat", "lon"], self.dataframe["tas"].values.reshape(-1, 1, 1)),
-            },
-            coords={
-                "time": self.dataframe.index.values,
-                "lat": [self.meta_data["latitude"]],
-                "lon": [self.meta_data["longitude"]],
-            },
-        )
+        if self.hourly:
+            print(self.dataframe["tas"].values.shape)
+            ds = xr.Dataset(
+                {
+                    "tas": (["time", "lat", "lon"], self.dataframe["tas"].values.reshape(-1, 1, 1)),
+                },
+                coords={
+                    "time": self.dataframe.index.values,
+                    "lat": [self.meta_data["latitude"]],
+                    "lon": [self.meta_data["longitude"]],
+                },
+            )
+        else:
+            # tas column is an 8x8 array
+            # write 8x8 grid in the netcdf file
+            blueprint_ds = xr.open_dataset(self.grid_blueprint)
+            lats = blueprint_ds.lat.values
+            lons = blueprint_ds.lon.values
+            print(self.dataframe["tas"].values.shape)
+            ds = xr.Dataset(
+                {
+                    "tas": (["time", "lat", "lon"], [grid for grid in self.dataframe["tas"].values]),
+                },
+                coords={
+                    "time": self.dataframe.index.values,
+                    "lat": lats,
+                    "lon": lons,
+                },
+            )
+            
+            
 
         save_to_path = location + self.name.lower() + ".nc"
         print(f"Saving to {save_to_path}")
@@ -188,6 +233,7 @@ class DatToNcConverter:
 
         # Save the xarray Dataset to NetCDF
         ds.to_netcdf(save_to_path)
+        
 
     def execute(self, location=None):
         self.extract()
