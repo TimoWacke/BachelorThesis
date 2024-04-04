@@ -23,7 +23,7 @@ import pandas as pd
 import tqdm
 import re
 
-from map_minutes_to_grid import mapping_rule
+from .map_minutes_to_grid import mapping_rule
 
 class DatToNcConverter:
 

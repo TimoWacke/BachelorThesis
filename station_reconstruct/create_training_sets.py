@@ -8,7 +8,7 @@ import subprocess
 from datetime import datetime
 from tqdm import tqdm
 
-from utils import DataSet
+from .utils import DataSet
 
 class TrainingsFilePair:
 
