@@ -233,7 +233,7 @@ class DatToNcConverter:
 
         # Save the xarray Dataset to NetCDF
         ds.to_netcdf(save_to_path)
-        
+        return save_to_path
 
     def execute(self, location=None):
         self.extract()

@@ -136,7 +136,15 @@ class CreateMatchingEra5FileForStationData:
 
         return self.target_era5_path
 
-    def transform_era5_to_match_station_time_dimension(self) -> None:
+    def transform_era5_to_match_station_time_dimension(self) -> tuple[str, str]:
+        """
+        Crop the time axis of the station and era5 dataset to the intersection of the two datasets.
+        Delete timesteps without measurements from the era5 dataset.
+        
+        Returns:
+            tuple[str, str]: paths to the cropped station and era5 datasets
+        """
+        
         era5_dataset = DataSet(self.target_era5_path)
         station_dataset = self.station.dataset
         # get later start date
