@@ -151,12 +151,12 @@ class DatToNcConverter:
 
         if self.hourly:
             # merge all minutely data into one row using the mean
-            hourly_df = df.resample("H").apply(custom_aggregation)
+            hourly_df = df.resample("h").apply(custom_aggregation)
         else:
             
             hourly_df = pd.DataFrame(columns = ["temp"])
             
-            for hour, hour_data in df.resample("H"):
+            for hour, hour_data in df.resample("h"):
                 hourly_temp_array = np.nan * np.zeros((8, 8))
                 
                 for minute, temp in zip(hour_data.index.minute, hour_data["temp"].values):
