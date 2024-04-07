@@ -28,13 +28,14 @@ from .map_minutes_to_grid import mapping_rule
 class DatToNcConverter:
 
     def __init__(self, name, directory = None, target_directory = None, hourly = False,
-                 grid_blueprint = None):
+                 grid_blueprint = None, keep_original = False):
         self.name = name
         self.directory = directory if directory is not None else os.getcwd() + "/station_data_as_dat/" + self.name.capitalize()
         self.target_directory = target_directory if target_directory is not None else os.getcwd() + "/station_data_as_nc/"
         self.files = self.get_files()
         self.dataframe = None
         self.original_df = None
+        self.keep_original = keep_original
         self.nc_data = None
         self.meta_data = self.extract_meta_data()
         self.hourly = hourly
