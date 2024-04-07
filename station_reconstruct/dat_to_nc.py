@@ -63,15 +63,11 @@ class DatToNcConverter:
         seperator = format_config.get("seperator", "\s+")
         header = format_config.get("header", 0)
         df = pd.read_csv(self.directory + "/" + file, sep = seperator, header = header)
-        return self.transform_partial(df), df
+        return self.resample_to_hourly_steps(df)
 
     # append dataframe to the end of self.dataframe
-    def append_to_dataframes(self, df, original = None):
+    def append_to_dataframes(self, df):
         self.dataframe = pd.concat([self.dataframe, df])
-        if original is not None:
-            self.original_df = pd.concat([self.original_df, original])
-        
-
 
     def extract_meta_data(self):
         meta_data = {}
@@ -126,16 +122,13 @@ class DatToNcConverter:
         if first_n_files is None:
             first_n_files = len(self.files)
         for file in tqdm.tqdm(self.files[:first_n_files]):
-            df, original = self.convert_to_dataframe(file)
-            if self.keep_original:
-                self.append_to_dataframes(df, original)
-            else:
-                self.append_to_dataframes(df)
+            df = self.convert_to_dataframe(file)
+            self.append_to_dataframes(df)
         return self.dataframe
     
     # convert dataframe to netcdf compatible format datatype
 
-    def transform_partial(self, df):
+    def resample_to_hourly_steps(self, df):
          # convert year mon day hour min columns to datetime object (as int)
         df["datetime"] = df.apply(lambda row: datetime(int(row["year"]), int(row["mon"]), int(row["day"]), int(row["hour"]), int(row["min"])), axis = 1)
         # drop year mon day hour min columns
@@ -149,10 +142,10 @@ class DatToNcConverter:
 
 
         # use certain sensors
-        df["temp"] = df[[self.tas_sensor]].mean(axis = 1)
+        df["tas"] = df[[self.tas_sensor]].mean(axis = 1)
                 
         # convert temp from C to K
-        df["temp"] = df["temp"] + 273.15
+        df["tas"] = df["tas"] + 273.15
         
 
         def custom_aggregation(series):
@@ -167,12 +160,12 @@ class DatToNcConverter:
             hourly_df = df.resample("h").apply(custom_aggregation)
         else:
             
-            hourly_df = pd.DataFrame(columns = ["temp"])
+            hourly_df = pd.DataFrame(columns = ["tas"])
             
             for hour, hour_data in df.resample("h"):
                 hourly_temp_array = np.nan * np.zeros((8, 8))
                 
-                for minute, temp in zip(hour_data.index.minute, hour_data["temp"].values):
+                for minute, temp in zip(hour_data.index.minute, hour_data["tas"].values):
                     row, col = mapping_rule[minute]
                     hourly_temp_array[row, col] = temp
                     
@@ -182,10 +175,12 @@ class DatToNcConverter:
         
 
     def transform(self):
+        if self.keep_original:
+            self.original_df = self.dataframe
         
         # interesting columns in dataframe
         mapping = {
-            "temp": "tas",
+            "tas": "tas",
             "vis_light": "vis_light",
             "uv_light": "uv_light",
             "ir_light": "ir_light",
@@ -198,7 +193,7 @@ class DatToNcConverter:
         self.dataframe = self.dataframe[intersect_columns]
         
         if self.hourly:
-            self.dataframe = self.dataframe.dropna(subset=["temp"])
+            self.dataframe = self.dataframe.dropna(subset=["tas"])
 
         # rename columns
         self.dataframe = self.dataframe.rename(columns = mapping)
@@ -258,18 +253,25 @@ class DatToNcConverter:
     def export_a_df_to_tas(self, df, tas_path):
         # export df in csv format to tas_path
         seperator = self.get_tas_format_config().get("seperator", "\s+")
+        if seperator == "\s+":
+            seperator = " "
         df.to_csv(tas_path, sep = seperator)
         
-    def transform_df_to_tas(self, df, adj_temp_columns) -> pd.DataFrame:
-        # convert all adjusted temp columns from K to C
-        for column in adj_temp_columns:
-            df[column] = df[column] - 273.15
+    def transform_df_to_tas(self, df) -> pd.DataFrame:
+        # drop sensor column and then renamce tas column to sensor
+        df = df.drop(columns = [self.tas_sensor])
+        df = df.rename(columns = {"tas": self.tas_sensor})
+        # convert adjusted column back from K to C
+        df[self.tas_sensor] = df[self.tas_sensor] - 273.15
+        df = df.round(self.get_tas_format_config().get("digit_precision", 2))
         # set nan values to -999.99
         df = df.fillna(-999.99)
+        return df
         
         
     def get_tas_format_config(self):
         return {
             "seperator": "\s+",
-            "header": 0
+            "header": 0,
+            "digit_precision": 2,
         }
