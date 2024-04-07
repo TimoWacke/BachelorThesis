@@ -34,6 +34,7 @@ class DatToNcConverter:
         self.target_directory = target_directory if target_directory is not None else os.getcwd() + "/station_data_as_nc/"
         self.files = self.get_files()
         self.dataframe = None
+        self.original_df = None
         self.nc_data = None
         self.meta_data = self.extract_meta_data()
         self.hourly = hourly
