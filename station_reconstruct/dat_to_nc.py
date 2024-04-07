@@ -57,12 +57,14 @@ class DatToNcConverter:
         
         # load into pandas dataframe, first line are the column names
         df = pd.read_csv(self.directory + "/" + file, sep = "\s+", header = 0)
-    
-        return self.transform_partial(df)
+        return self.transform_partial(df), df
 
     # append dataframe to the end of self.dataframe
-    def append_to_dataframe(self, df):
+    def append_to_dataframes(self, df, original = None):
         self.dataframe = pd.concat([self.dataframe, df])
+        if original is not None:
+            self.original_df = pd.concat([self.original_df, original])
+        
 
 
     def extract_meta_data(self):
@@ -109,15 +111,20 @@ class DatToNcConverter:
     # extract a whole folder of .dat files into to self.dataframe
 
     def extract(self, first_n_files = None):
-        # initialize dataframe
+        # initialize dataframes
         self.dataframe = pd.DataFrame()
+        if self.keep_original:
+            self.original_df = pd.DataFrame()
 
         # loading bar for progress
         if first_n_files is None:
             first_n_files = len(self.files)
         for file in tqdm.tqdm(self.files[:first_n_files]):
-            df = self.convert_to_dataframe(file)
-            self.append_to_dataframe(df)
+            df, original = self.convert_to_dataframe(file)
+            if self.keep_original:
+                self.append_to_dataframes(df, original)
+            else:
+                self.append_to_dataframes(df)
         return self.dataframe
     
     # convert dataframe to netcdf compatible format datatype
