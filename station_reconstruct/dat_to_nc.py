@@ -38,6 +38,7 @@ class DatToNcConverter:
         self.meta_data = self.extract_meta_data()
         self.hourly = hourly
         self.grid_blueprint = grid_blueprint
+        self.tas_sensor = "mcp9808"
 
     # determine files in directory
 
@@ -56,7 +57,10 @@ class DatToNcConverter:
     def convert_to_dataframe(self, file) -> pd.DataFrame:
         
         # load into pandas dataframe, first line are the column names
-        df = pd.read_csv(self.directory + "/" + file, sep = "\s+", header = 0)
+        format_config = self.get_tas_format_config()
+        seperator = format_config.get("seperator", "\s+")
+        header = format_config.get("header", 0)
+        df = pd.read_csv(self.directory + "/" + file, sep = seperator, header = header)
         return self.transform_partial(df), df
 
     # append dataframe to the end of self.dataframe
@@ -143,7 +147,7 @@ class DatToNcConverter:
 
 
         # use certain sensors
-        df["temp"] = df[["mcp9808"]].mean(axis = 1)
+        df["temp"] = df[[self.tas_sensor]].mean(axis = 1)
                 
         # convert temp from C to K
         df["temp"] = df["temp"] + 273.15
@@ -248,3 +252,22 @@ class DatToNcConverter:
         if location is None:
             location = self.target_directory
         self.load(location)
+        
+    def export_a_df_to_tas(self, df, tas_path):
+        # export df in csv format to tas_path
+        seperator = self.get_tas_format_config().get("seperator", "\s+")
+        df.to_csv(tas_path, sep = seperator)
+        
+    def transform_df_to_tas(self, df, adj_temp_columns) -> pd.DataFrame:
+        # convert all adjusted temp columns from K to C
+        for column in adj_temp_columns:
+            df[column] = df[column] - 273.15
+        # set nan values to -999.99
+        df = df.fillna(-999.99)
+        
+        
+    def get_tas_format_config(self):
+        return {
+            "seperator": "\s+",
+            "header": 0
+        }
